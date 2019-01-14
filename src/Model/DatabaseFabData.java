@@ -1,3 +1,5 @@
+package Model;
+
 import org.apache.commons.dbcp.ConnectionFactory;
 import org.apache.commons.dbcp.DriverManagerConnectionFactory;
 import org.apache.commons.dbcp.PoolableConnectionFactory;
@@ -8,7 +10,7 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-public class Database {
+public class DatabaseFabData {
     // Singleton for DB client
     // Creates a single connection pool internally
 
@@ -22,7 +24,7 @@ public class Database {
 
     public DataSource setUp() throws Exception {
         // Load JDBC Driver class.
-        Class.forName(Database.DRIVER).newInstance();
+        Class.forName(DatabaseFabData.DRIVER).newInstance();
 
         // Creates an instance of GenericObjectPool that holds our
         // pool of connections object.
@@ -33,9 +35,9 @@ public class Database {
         // the pool to create the connection object. We passes the
         // JDBC url info, username and password.
         ConnectionFactory cf = new DriverManagerConnectionFactory(
-                Database.URL,
-                Database.USERNAME,
-                Database.PASSWORD);
+                DatabaseFabData.URL,
+                DatabaseFabData.USERNAME,
+                DatabaseFabData.PASSWORD);
 
         // Creates a PoolableConnectionFactory that will wraps the
         // connection object created by the ConnectionFactory to add

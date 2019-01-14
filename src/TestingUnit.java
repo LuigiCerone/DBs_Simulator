@@ -1,12 +1,14 @@
 
+import Model.DatabaseFabData;
+import Model.Tool;
+import Threads.FabDataInsertThread;
+import Threads.RawDataInsertThread;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -14,11 +16,12 @@ import java.util.concurrent.Executors;
 
 public class TestingUnit extends JFrame {
     ArrayList<Tool> tools;
-    Random random = new Random();
+
     public static int totalRequestsNumber = 0;
     static long startTime = 0;
     static boolean userWants = true;
-    private Database database = new Database();
+    private DatabaseFabData databaseFabData = new DatabaseFabData();
+    private Utils utils = new Utils();
 
 
     public static void main(String[] args) {
@@ -109,163 +112,81 @@ public class TestingUnit extends JFrame {
     }
 
     private void run(String toolNumber, String pauseSize) {
-
-//        int TOOLS_NUMBER = 1;
-        int TOOLS_NUMBER;
+        long p1;
         try {
-            TOOLS_NUMBER = Integer.parseInt(toolNumber);
-        } catch (Exception e) {
-            TOOLS_NUMBER = 1000;
+            p1 = Long.parseLong(pauseSize);
+        } catch (NumberFormatException e) {
+            p1 = 1000;
         }
+        final long pause = p1;
+//        int TOOLS_NUMBER = 1;
+
+        int t;
+        try {
+            t = Integer.parseInt(toolNumber);
+        } catch (Exception e) {
+            t = 1000;
+        }
+
+        final int TOOLS_NUMBER = t;
+
         // Create an array of fake Robots.
         tools = new ArrayList<Tool>(TOOLS_NUMBER);
 
         int RECIPES_NUMBER = TOOLS_NUMBER / 10;
         int STEP_NUMBER = RECIPES_NUMBER / 10;
-        ArrayList<String> recipes = createFakeData(RECIPES_NUMBER);
-        ArrayList<String> steps = createFakeData(STEP_NUMBER);
+        ArrayList<String> recipes = utils.createFakeData(RECIPES_NUMBER);
+        ArrayList<String> steps = utils.createFakeData(STEP_NUMBER);
 
+        Random random = new Random();
         for (int i = 0; i < TOOLS_NUMBER; i++) {
-            tools.add(createFakeRobot(recipes.get(random.nextInt(recipes.size())), steps.get(random.nextInt(steps.size()))));
+            tools.add(utils.createFakeRobot(recipes.get(random.nextInt(recipes.size())), steps.get(random.nextInt(steps.size()))));
         }
 
         System.out.println("Array has been created.");
         startTime = System.currentTimeMillis();
 //        Runtime.getRuntime().addShutdownHook(new shutDownHook(startProgram));
 
-        ExecutorService executor = Executors.newFixedThreadPool(4);//creating a pool of 4 threads
+        final ExecutorService pool = Executors.newFixedThreadPool(4);//creating a pool of 4 threads
+
+        final DatabaseFabData databaseFabData = new DatabaseFabData();
 
         while (userWants) {
 
-            int index = random.nextInt((TOOLS_NUMBER - 1) + 1);
-            Tool currTool = tools.get(index);
+            ExecutorService executor = Executors.newFixedThreadPool(2);
 
-            Runnable worker = new SenderThread(currTool);
-            executor.execute(worker); //calling execute method of ExecutorService
+            // Fab data threads.
+            executor.submit(new Runnable() {
+                public void run() {
+                    System.out.println(pause);
+                    String threadName = Thread.currentThread().getName();
+                    Random random = new Random();
 
-//            sendData(currRobot);
-            totalRequestsNumber++;
-            long pause;
-            try {
-                pause = Long.parseLong(pauseSize);
-            } catch (NumberFormatException e) {
-                pause = 1000;
-            }
-            try {
-                Thread.sleep(pause);
-//                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
+                    int index = random.nextInt((TOOLS_NUMBER - 1) + 1);
+                    Tool currTool = tools.get(index);
 
-    private ArrayList<String> createFakeData(int COUNT) {
-        int minBound = COUNT - 10;
-        if (minBound < 0) minBound = 0;
-        int length = random.nextInt(((COUNT + 10) - minBound) + minBound);
-        ArrayList<String> array = new ArrayList<>(length);
+                    Connection connection = databaseFabData.getConnection();
 
-        for (int i = 0; i < length; i++) {
-            array.add(getRandomHexString(6));
-        }
-        return array;
-    }
+                    Runnable worker = new FabDataInsertThread(currTool, connection);
+                    pool.execute(worker); //calling execute method of ExecutorService
 
-    // Create a new tool with random data.
-    private Tool createFakeRobot(String recipeOID, String stepOID) {
-        String toolOID = getRandomHexString(6);
+                    totalRequestsNumber++;
 
-        return new Tool(toolOID, recipeOID, stepOID);
-    }
-
-    private String getRandomHexString(int numchars) {
-        Random r = new Random();
-        StringBuffer sb = new StringBuffer();
-        while (sb.length() < numchars) {
-            sb.append(Integer.toHexString(r.nextInt()));
-        }
-
-        return sb.toString().substring(0, numchars).toUpperCase();
-    }
-
-    // Thread that create a JSON payload and sent it with a POST requests to our system.
-    public class SenderThread implements Runnable {
-        Tool tool;
-
-        public SenderThread(Tool tool) {
-            this.tool = tool;
-        }
-
-        @Override
-        public void run() {
-//            long start = System.currentTimeMillis();
-            try {
-
-                Event event = new Event(this.tool, "holdType", this.tool.isOnHold(),
-                        new Date(System.currentTimeMillis()));
-
-                boolean oldValue = this.tool.isOnHold();
-                event.setHoldFlag(!oldValue);
-
-                // Uncomment to see the data.
-                // System.out.println(jsonObject.toString());
-
-                // Now we create a POST request with jsonObject as data.
-                store(event);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-//            long end = System.currentTimeMillis();
-//            System.out.println("One single request took : " + (end - start) + "ms.");
-
-        }
-
-        private boolean store(Event event) {
-            Connection conn = null;
-            PreparedStatement stmt = null;
-
-            String query = "INSERT INTO event (id, equip, recipe, step, holdtype, holdflag, datetime) " +
-                    "VALUE (null, ?,?,?,?,?,?);";
-            boolean done = false;
-            try {
-                conn = database.getConnection();
-
-                stmt = conn.prepareStatement(query);
-                stmt.setString(1, event.getTool().getEquipOID());
-                stmt.setString(2, event.getTool().getRecipeOID());
-                stmt.setString(3, event.getTool().getStepOID());
-                stmt.setString(4, event.getHoldType());
-                stmt.setBoolean(5, event.isHoldFlag());
-                stmt.setDate(6, event.getDateTime());
-
-                int rows = stmt.executeUpdate();
-                if (rows > 0) {
-                    done = true;
-                } else done = false;
-            } catch (SQLException e) {
-                e.printStackTrace();
-            } finally {
-                if (stmt != null) {
                     try {
-                        stmt.close();
-                    } catch (SQLException e) {
+                        Thread.sleep(pause);
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
-                if (conn != null) {
-                    try {
-                        conn.close();
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            return done;
+            });
+
+            // Raw data thread.
+            Runnable rawDataThread = new RawDataInsertThread(tools);
+            executor.submit(rawDataThread);
+
         }
     }
+
 
     // Thread used for display statistics when the Virtual Machine exit() is called.
 //    public class shutDownHook extends Thread {

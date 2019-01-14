@@ -1,5 +1,5 @@
-drop database fab_data;
-create database fab_data;
+drop databaseFabData fab_data;
+create databaseFabData fab_data;
 use fab_data;
 
 create table event

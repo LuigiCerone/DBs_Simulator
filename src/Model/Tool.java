@@ -1,3 +1,5 @@
+package Model;
+
 public class Tool {
     private String equipOID;
     private String recipeOID;
