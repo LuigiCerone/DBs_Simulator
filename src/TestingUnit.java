@@ -1,15 +1,12 @@
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -25,11 +22,12 @@ public class TestingUnit extends JFrame {
 
 
     public static void main(String[] args) {
-        TestingUnit testingUnit = new TestingUnit();
+        final TestingUnit testingUnit = new TestingUnit();
 
         JButton STARTButton = new JButton("Start");
         JButton STOPButton = new JButton("Stop");
-        final JTextField ipAddress = new JTextField(15);
+
+
         final JTextField robotNumber = new JTextField(6);
         final JTextField pauseSize = new JTextField(6);
 
@@ -54,9 +52,6 @@ public class TestingUnit extends JFrame {
 
         JPanel inputPanel = new JPanel();
         inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
-        JLabel ipLabel = new JLabel("Server IP: ");
-        inputPanel.add(ipLabel);
-        inputPanel.add(ipAddress);
 
         JLabel robotNumberLabel = new JLabel("Robots number: ");
         inputPanel.add(robotNumberLabel);
@@ -86,13 +81,13 @@ public class TestingUnit extends JFrame {
         STARTButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println(ipAddress.getText() + " " + robotNumber.getText() + " " + pauseSize.getText());
+                System.out.println(robotNumber.getText() + " " + pauseSize.getText());
                 userWants = true;
 
                 totalRequestsNumber = 0;
                 new Thread() {
                     public void run() {
-                        testingUnit.run(ipAddress.getText(), robotNumber.getText(), pauseSize.getText());
+                        testingUnit.run(robotNumber.getText(), pauseSize.getText());
                     }
                 }.start();
             }
@@ -113,14 +108,8 @@ public class TestingUnit extends JFrame {
         });
     }
 
-    private void run(String ipAddressText, String toolNumber, String pauseSize) {
-        URL url = null;
-        try {
-            url = new URL("http://" + ipAddressText);
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
+    private void run(String toolNumber, String pauseSize) {
 
-        }
 //        int TOOLS_NUMBER = 1;
         int TOOLS_NUMBER;
         try {
@@ -178,14 +167,14 @@ public class TestingUnit extends JFrame {
         ArrayList<String> array = new ArrayList<>(length);
 
         for (int i = 0; i < length; i++) {
-            array.add(getRandomHexString(15));
+            array.add(getRandomHexString(6));
         }
         return array;
     }
 
     // Create a new tool with random data.
     private Tool createFakeRobot(String recipeOID, String stepOID) {
-        String toolOID = getRandomHexString(15);
+        String toolOID = getRandomHexString(6);
 
         return new Tool(toolOID, recipeOID, stepOID);
     }
@@ -197,7 +186,7 @@ public class TestingUnit extends JFrame {
             sb.append(Integer.toHexString(r.nextInt()));
         }
 
-        return sb.toString().substring(0, numchars);
+        return sb.toString().substring(0, numchars).toUpperCase();
     }
 
     // Thread that create a JSON payload and sent it with a POST requests to our system.
