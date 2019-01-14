@@ -1,2 +1,2 @@
-# MEB-POC
-Software Architecture course, final project.
+# DBs_Simulator
+Simulator for the final course project of Software Architectures
