@@ -1,8 +1,10 @@
+package Main;
 
 import Model.DatabaseFabData;
 import Model.Tool;
 import Threads.FabDataInsertThread;
 import Threads.RawDataInsertThread;
+import Threads.ShutDownThread;
 
 import javax.swing.*;
 import java.awt.*;
@@ -84,7 +86,7 @@ public class TestingUnit extends JFrame {
         STARTButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println(robotNumber.getText() + " " + pauseSize.getText());
+                System.out.println("Number of robots: " + robotNumber.getText() + ", with pause size: " + pauseSize.getText());
                 userWants = true;
 
                 totalRequestsNumber = 0;
@@ -105,8 +107,8 @@ public class TestingUnit extends JFrame {
 
                 stats.setText(" " + totalRequestsNumber + " requests made in " + (endTime - startTime) + " ms.");
 
-//                System.exit(0);
-                userWants = false;
+                System.exit(0);
+//                userWants = false;
             }
         });
     }
@@ -143,63 +145,56 @@ public class TestingUnit extends JFrame {
             tools.add(utils.createFakeRobot(recipes.get(random.nextInt(recipes.size())), steps.get(random.nextInt(steps.size()))));
         }
 
-        System.out.println("Array has been created.");
+        System.out.println("Array of fake robots has been created.");
         startTime = System.currentTimeMillis();
-//        Runtime.getRuntime().addShutdownHook(new shutDownHook(startProgram));
 
-        final ExecutorService pool = Executors.newFixedThreadPool(4);//creating a pool of 4 threads
+        Runtime.getRuntime().addShutdownHook(new ShutDownThread(startTime, this));
 
-        final DatabaseFabData databaseFabData = new DatabaseFabData();
 
-        while (userWants) {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
 
-            ExecutorService executor = Executors.newFixedThreadPool(2);
+        // Fab data threads.
+        executor.submit(new Runnable() {
+            public void run() {
+                // Pool for the threads that will store data into fab_data.
 
-            // Fab data threads.
-            executor.submit(new Runnable() {
-                public void run() {
-                    System.out.println(pause);
-                    String threadName = Thread.currentThread().getName();
-                    Random random = new Random();
+                System.out.println("FabDataInsertThread started");
 
-                    int index = random.nextInt((TOOLS_NUMBER - 1) + 1);
-                    Tool currTool = tools.get(index);
+                ExecutorService pool = Executors.newFixedThreadPool(4);
+                DatabaseFabData databaseFabData = new DatabaseFabData();
 
-                    Connection connection = databaseFabData.getConnection();
+//                    System.out.println(pause);
 
-                    Runnable worker = new FabDataInsertThread(currTool, connection);
-                    pool.execute(worker); //calling execute method of ExecutorService
+                Random random = new Random();
+                int index = random.nextInt((TOOLS_NUMBER - 1) + 1);
+                Tool currTool = tools.get(index);
 
-                    totalRequestsNumber++;
+                Connection connection = databaseFabData.getConnection();
 
-                    try {
-                        Thread.sleep(pause);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                Runnable worker = new FabDataInsertThread(currTool, connection);
+//                    worker.run();
+                pool.execute(worker); //calling execute method of ExecutorService
+
+                totalRequestsNumber++;
+
+                try {
+                    Thread.sleep(pause);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-            });
+            }
+        });
 
-            // Raw data thread.
-            Runnable rawDataThread = new RawDataInsertThread(tools);
-            executor.submit(rawDataThread);
+        // Raw data thread.
+        Runnable rawDataThread = new RawDataInsertThread(tools);
+        System.out.println("RawDataInsertThread started");
 
-        }
+        executor.submit(rawDataThread);
+
+
     }
 
-
-    // Thread used for display statistics when the Virtual Machine exit() is called.
-//    public class shutDownHook extends Thread {
-//        long startTime;
-//
-//        public shutDownHook(long startTime) {
-//            this.startTime = startTime;
-//        }
-//
-//        @Override
-//        public void run() {
-//            long endTime = System.currentTimeMillis();
-//            System.out.println("I've run for : " + (endTime - startTime) + "ms and I've done :" + totalRequestsNumber + " requests.");
-//        }
-//    }
+    public int getTotalRequestsNumber() {
+        return totalRequestsNumber;
+    }
 }
