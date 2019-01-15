@@ -28,10 +28,7 @@ public class FabDataInsertThread implements Runnable {
             boolean oldValue = this.tool.isOnHold();
             event.setHoldFlag(!oldValue);
 
-            // Uncomment to see the data.
-            // System.out.println(jsonObject.toString());
-
-            // Now we create a POST request with jsonObject as data.
+            // Now we insert the event into the fab_data database.
             store(event);
 
         } catch (Exception e) {
