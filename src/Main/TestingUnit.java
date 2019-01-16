@@ -157,30 +157,31 @@ public class TestingUnit extends JFrame {
         executor.submit(new Runnable() {
             public void run() {
                 // Pool for the threads that will store data into fab_data.
+                while (userWants) {
+                    System.out.println("FabDataInsertThread started");
 
-                System.out.println("FabDataInsertThread started");
-
-                ExecutorService pool = Executors.newFixedThreadPool(4);
-                DatabaseFabData databaseFabData = new DatabaseFabData();
+                    ExecutorService pool = Executors.newFixedThreadPool(4);
+                    DatabaseFabData databaseFabData = new DatabaseFabData();
 
 //                    System.out.println(pause);
 
-                Random random = new Random();
-                int index = random.nextInt((TOOLS_NUMBER - 1) + 1);
-                Tool currTool = tools.get(index);
+                    Random random = new Random();
+                    int index = random.nextInt((TOOLS_NUMBER - 1) + 1);
+                    Tool currTool = tools.get(index);
 
-                Connection connection = databaseFabData.getConnection();
+                    Connection connection = databaseFabData.getConnection();
 
-                Runnable worker = new FabDataInsertThread(currTool, connection);
+                    Runnable worker = new FabDataInsertThread(currTool, connection);
 //                    worker.run();
-                pool.execute(worker); //calling execute method of ExecutorService
+                    pool.execute(worker); //calling execute method of ExecutorService
 
-                totalRequestsNumber++;
+                    totalRequestsNumber++;
 
-                try {
-                    Thread.sleep(pause);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    try {
+                        Thread.sleep(pause);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         });
