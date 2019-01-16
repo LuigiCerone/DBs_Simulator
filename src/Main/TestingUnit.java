@@ -58,7 +58,7 @@ public class TestingUnit extends JFrame {
         JPanel inputPanel = new JPanel();
         inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
 
-        JLabel robotNumberLabel = new JLabel("Robots number: ");
+        JLabel robotNumberLabel = new JLabel("Tools number: ");
         inputPanel.add(robotNumberLabel);
         inputPanel.add(robotNumber);
 

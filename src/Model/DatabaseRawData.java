@@ -19,6 +19,7 @@ public class DatabaseRawData {
     public static final String USERNAME = "sa18";
     public static final String PASSWORD = "software_architectures_18";
 
+
     private GenericObjectPool connectionPool = null;
     private DataSource dataSource = null;
 
