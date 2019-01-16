@@ -33,8 +33,8 @@ public class TestingUnit extends JFrame {
         JButton STOPButton = new JButton("Stop");
 
 
-        final JTextField robotNumber = new JTextField(6);
-        final JTextField pauseSize = new JTextField(6);
+        final JTextField robotNumber = new JTextField("1000", 6);
+        final JTextField pauseSize = new JTextField("1000", 6);
 
         final JTextArea stats = new JTextArea();
         stats.setEditable(false);
