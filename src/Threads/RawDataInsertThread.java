@@ -26,21 +26,23 @@ public class RawDataInsertThread implements Runnable {
 
     @Override
     public void run() {
-        String threadName = Thread.currentThread().getName();
-        Random random = new Random();
 
-        int index = random.nextInt((tools.size() - 1) + 1);
-        Tool currTool = tools.get(index);
+        while (true) {
+            Random random = new Random();
 
-        Connection connection = databaseRawData.getConnection();
+            int index = random.nextInt((tools.size() - 1) + 1);
+            Tool currTool = tools.get(index);
 
-        // Add analytics.
-        store(currTool, connection);
+            Connection connection = databaseRawData.getConnection();
 
-        try {
-            Thread.sleep(random.nextInt(MAX_DELAY - 1) + 1);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            // Add analytics.
+            store(currTool, connection);
+
+            try {
+                Thread.sleep(random.nextInt(MAX_DELAY - 1) + 1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 

@@ -142,7 +142,7 @@ public class TestingUnit extends JFrame {
 
         Random random = new Random();
         for (int i = 0; i < TOOLS_NUMBER; i++) {
-            tools.add(utils.createFakeRobot(recipes.get(random.nextInt(recipes.size())), steps.get(random.nextInt(steps.size()))));
+            tools.add(utils.createFakeRobot(recipes.get(Math.abs(random.nextInt(recipes.size()))), steps.get(Math.abs(random.nextInt(steps.size())))));
         }
 
         System.out.println("Array of fake robots has been created.");
@@ -157,9 +157,11 @@ public class TestingUnit extends JFrame {
         executor.submit(new Runnable() {
             public void run() {
                 // Pool for the threads that will store data into fab_data.
-                while (userWants) {
-                    System.out.println("FabDataInsertThread started");
+                System.out.println("FabDataInsertThread started");
 
+                while (userWants) {
+                    // Uncomment to see when one raw is inserted.
+//                    System.out.println("FabDataThread inserted a raw");
                     ExecutorService pool = Executors.newFixedThreadPool(4);
                     DatabaseFabData databaseFabData = new DatabaseFabData();
 
