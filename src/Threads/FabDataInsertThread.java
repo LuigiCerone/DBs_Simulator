@@ -4,11 +4,13 @@ import Model.Event;
 import Model.Tool;
 
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Random;
 
 public class FabDataInsertThread implements Runnable {
+    public final int CATEGORIES_NUM = 10;
+
     Tool tool;
     Connection connection;
 
@@ -22,8 +24,9 @@ public class FabDataInsertThread implements Runnable {
 //            long start = System.currentTimeMillis();
         try {
 
-            Model.Event event = new Model.Event(this.tool, "holdType", this.tool.isOnHold(),
-                    new Date(System.currentTimeMillis()));
+            Random random = new Random();
+            Model.Event event = new Model.Event(this.tool, "holdType" + random.nextInt(CATEGORIES_NUM), this.tool.isOnHold(),
+                    System.currentTimeMillis());
 
             boolean oldValue = this.tool.isOnHold();
             event.setHoldFlag(!oldValue);
@@ -55,7 +58,7 @@ public class FabDataInsertThread implements Runnable {
             stmt.setString(3, event.getTool().getStepOID());
             stmt.setString(4, event.getHoldType());
             stmt.setBoolean(5, event.isHoldFlag());
-            stmt.setDate(6, event.getDateTime());
+            stmt.setLong(6, event.getDateTime());
 
             int rows = stmt.executeUpdate();
             if (rows > 0) {

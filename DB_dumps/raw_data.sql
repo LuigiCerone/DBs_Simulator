@@ -16,6 +16,8 @@ create table analytics
   stepId     varchar(30)          null,
   stepName     varchar(30)          null,
 
+  holdtype varchar(30)          not null,
+
   fakeData mediumtext not null
 );
 

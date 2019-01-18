@@ -1,14 +1,12 @@
 package Model;
 
-import java.sql.Date;
-
 public class Event {
     private Tool tool;
     private String holdType;
     private boolean holdFlag;
-    private Date dateTime;
+    private long dateTime;
 
-    public Event(Tool tool, String holdType, boolean holdFlag, Date dateTime) {
+    public Event(Tool tool, String holdType, boolean holdFlag, long dateTime) {
         this.tool = tool;
         this.holdType = holdType;
         this.holdFlag = holdFlag;
@@ -41,11 +39,11 @@ public class Event {
 
     }
 
-    public Date getDateTime() {
+    public long getDateTime() {
         return dateTime;
     }
 
-    public void setDateTime(Date dateTime) {
+    public void setDateTime(long dateTime) {
         this.dateTime = dateTime;
     }
 }

@@ -14,7 +14,8 @@ public class RawDataInsertThread implements Runnable {
 
     // Each char is 1 byte in SQL, so 10MB = 10 millions of chars.
     // 8MB instead of 10MB because 8MB is the max default value allowed (without changing max_allowed_packet).
-    private int SIZE = 8000000;
+//    private int SIZE = 8000000;
+    private int SIZE = 2000000;
 
     private ArrayList<Tool> tools;
     private DatabaseRawData databaseRawData;
