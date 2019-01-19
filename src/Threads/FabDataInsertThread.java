@@ -25,7 +25,7 @@ public class FabDataInsertThread implements Runnable {
         try {
 
             Random random = new Random();
-            Model.Event event = new Model.Event(this.tool, "holdType" + random.nextInt(CATEGORIES_NUM), this.tool.isOnHold(),
+            Model.Event event = new Model.Event(this.tool, "Category" + random.nextInt(CATEGORIES_NUM), this.tool.isOnHold(),
                     System.currentTimeMillis());
 
             boolean oldValue = this.tool.isOnHold();

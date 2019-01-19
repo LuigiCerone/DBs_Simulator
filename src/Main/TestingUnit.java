@@ -33,7 +33,7 @@ public class TestingUnit extends JFrame {
         JButton STOPButton = new JButton("Stop");
 
 
-        final JTextField robotNumber = new JTextField("1000", 6);
+        final JTextField toolNumber = new JTextField("100", 6);
         final JTextField pauseSize = new JTextField("1000", 6);
 
         final JTextArea stats = new JTextArea();
@@ -60,7 +60,7 @@ public class TestingUnit extends JFrame {
 
         JLabel robotNumberLabel = new JLabel("Tools number: ");
         inputPanel.add(robotNumberLabel);
-        inputPanel.add(robotNumber);
+        inputPanel.add(toolNumber);
 
         JLabel pauseSizeLabel = new JLabel("Pause size: ");
         inputPanel.add(pauseSizeLabel);
@@ -86,13 +86,13 @@ public class TestingUnit extends JFrame {
         STARTButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println("Number of robots: " + robotNumber.getText() + ", with pause size: " + pauseSize.getText());
+                System.out.println("Number of robots: " + toolNumber.getText() + ", with pause size: " + pauseSize.getText());
                 userWants = true;
 
                 totalRequestsNumber = 0;
                 new Thread() {
                     public void run() {
-                        testingUnit.run(robotNumber.getText(), pauseSize.getText());
+                        testingUnit.run(toolNumber.getText(), pauseSize.getText());
                     }
                 }.start();
             }
@@ -114,6 +114,9 @@ public class TestingUnit extends JFrame {
     }
 
     private void run(String toolNumber, String pauseSize) {
+        Random random = new Random();
+
+
         long p1;
         try {
             p1 = Long.parseLong(pauseSize);
@@ -135,12 +138,24 @@ public class TestingUnit extends JFrame {
         // Create an array of fake Robots.
         tools = new ArrayList<Tool>(TOOLS_NUMBER);
 
-        int RECIPES_NUMBER = TOOLS_NUMBER / 10;
-        int STEP_NUMBER = RECIPES_NUMBER / 10;
+        int RECIPES_NUMBER = 0;
+        if (TOOLS_NUMBER / 10 <= 0) {
+            RECIPES_NUMBER = random.nextInt(10);
+        } else {
+            RECIPES_NUMBER = TOOLS_NUMBER / 10;
+        }
+
+        int STEP_NUMBER = 0;
+        if (RECIPES_NUMBER / 10 <= 0) {
+            STEP_NUMBER = random.nextInt(10);
+        } else {
+            STEP_NUMBER = RECIPES_NUMBER / 10;
+        }
+
         ArrayList<String> recipes = utils.createFakeData(RECIPES_NUMBER);
         ArrayList<String> steps = utils.createFakeData(STEP_NUMBER);
 
-        Random random = new Random();
+
         for (int i = 0; i < TOOLS_NUMBER; i++) {
             tools.add(utils.createFakeRobot(recipes.get(Math.abs(random.nextInt(recipes.size()))), steps.get(Math.abs(random.nextInt(steps.size())))));
         }

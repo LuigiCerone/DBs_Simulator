@@ -34,10 +34,27 @@ public class RawDataInsertThread implements Runnable {
             int index = random.nextInt((tools.size() - 1) + 1);
             Tool currTool = tools.get(index);
 
+            int whichField = random.nextInt(3);
+            String oid = null;
+            String nameTranslation = null;
+            if (whichField == 0) {
+                // This means we need to insert in raw_data a equip OID translation.
+                oid = currTool.getEquipOID();
+                nameTranslation = "equipName" + currTool.getEquipOID();
+            } else if (whichField == 1) {
+                // This means we need to insert in raw_data a recipe OID translation.
+                oid = currTool.getRecipeOID();
+                nameTranslation = "recipeName" + currTool.getEquipOID();
+            } else if (whichField == 2) {
+                // This means we need to insert in raw_data a step OID translation.
+                oid = currTool.getStepOID();
+                nameTranslation = "stepName" + currTool.getEquipOID();
+            }
+
             Connection connection = databaseRawData.getConnection();
 
             // Add analytics.
-            store(currTool, connection);
+            store(oid, nameTranslation, whichField, connection);
 
             try {
                 Thread.sleep(random.nextInt(MAX_DELAY - 1) + 1);
@@ -47,11 +64,11 @@ public class RawDataInsertThread implements Runnable {
         }
     }
 
-    private boolean store(Tool tool, Connection connection) {
+    private boolean store(String oid, String nameTranslation, int type, Connection connection) {
         PreparedStatement stmt = null;
 
-        String query = "INSERT INTO analytics (id, equipId, equipName, recipeId, recipeName, stepId, stepName, fakeData) " +
-                "VALUE (null, ?,?,?,?,?,?,?);";
+        String query = "INSERT INTO analytics (id, oid, nameTranslation, type, fakeData) " +
+                "VALUE (null, ?,?,?,?);";
 
         char[] fakeData = new char[SIZE];
         String fakeString = new String(fakeData);
@@ -61,13 +78,10 @@ public class RawDataInsertThread implements Runnable {
 
 
             stmt = connection.prepareStatement(query);
-            stmt.setString(1, tool.getEquipOID());
-            stmt.setString(2, "equipName" + tool.getEquipOID());
-            stmt.setString(3, tool.getRecipeOID());
-            stmt.setString(4, "recipeName" + tool.getRecipeOID());
-            stmt.setString(5, tool.getStepOID());
-            stmt.setString(6, "stepName" + tool.getStepOID());
-            stmt.setString(7, fakeString);
+            stmt.setString(1, oid);
+            stmt.setString(2, nameTranslation);
+            stmt.setInt(3, type);
+            stmt.setString(4, fakeString);
 
             int rows = stmt.executeUpdate();
             if (rows > 0) {
