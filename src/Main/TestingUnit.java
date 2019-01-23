@@ -5,11 +5,17 @@ import Model.Tool;
 import Threads.FabDataInsertThread;
 import Threads.RawDataInsertThread;
 import Threads.ShutDownThread;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import org.apache.commons.io.FileUtils;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Random;
@@ -19,11 +25,18 @@ import java.util.concurrent.Executors;
 public class TestingUnit extends JFrame {
     ArrayList<Tool> tools;
 
+    private int TOOLS_NUMBER;
+    private long pause;
+
     public static int totalRequestsNumber = 0;
     static long startTime = 0;
+
     static boolean userWants = true;
-    private DatabaseFabData databaseFabData = new DatabaseFabData();
+
     private Utils utils = new Utils();
+
+    private final static JTextArea outputArea = new JTextArea(15, 30);
+    private String FILE_NAME = "data.txt";
 
 
     public static void main(String[] args) {
@@ -35,9 +48,6 @@ public class TestingUnit extends JFrame {
 
         final JTextField toolNumber = new JTextField("100", 6);
         final JTextField pauseSize = new JTextField("1000", 6);
-
-        final JTextArea stats = new JTextArea();
-        stats.setEditable(false);
 
 
         JFrame frame = new JFrame("Testing unit");
@@ -51,6 +61,9 @@ public class TestingUnit extends JFrame {
         buttonsPanel.setLayout(new FlowLayout());
         buttonsPanel.add(STARTButton);
         buttonsPanel.add(STOPButton);
+
+        final JCheckBox checkBox = new JCheckBox("Reuse");
+        buttonsPanel.add(checkBox);
         frameContentPane.add(buttonsPanel);
 
         // ==================================================================0
@@ -73,12 +86,16 @@ public class TestingUnit extends JFrame {
         logPanel.setLayout(new FlowLayout());
         JLabel infoLabel = new JLabel("Info: ");
         logPanel.add(infoLabel);
-        logPanel.add(stats);
         frameContentPane.add(logPanel);
 
         // ==================================================================
 
+
+        outputArea.setEditable(false);
+        frameContentPane.add(outputArea);
+
 //        frame.setContentPane(new StartTest().panelMain);
+//        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.pack();
         frame.setVisible(true);
@@ -86,13 +103,14 @@ public class TestingUnit extends JFrame {
         STARTButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println("Number of robots: " + toolNumber.getText() + ", with pause size: " + pauseSize.getText());
+                System.out.println("Number of tools: " + toolNumber.getText() + ", with pause size: " + pauseSize.getText());
+                outputArea.append("Number of tools: " + toolNumber.getText() + ", with pause size: " + pauseSize.getText() + "\n");
                 userWants = true;
 
                 totalRequestsNumber = 0;
                 new Thread() {
                     public void run() {
-                        testingUnit.run(toolNumber.getText(), pauseSize.getText());
+                        testingUnit.run(toolNumber.getText(), pauseSize.getText(), checkBox.isSelected());
                     }
                 }.start();
             }
@@ -102,10 +120,10 @@ public class TestingUnit extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 long endTime = System.currentTimeMillis();
-//                stats.setText("AAA");
+                userWants = false;
                 System.out.println("Requests: " + totalRequestsNumber);
 
-                stats.setText(" " + totalRequestsNumber + " requests made in " + (endTime - startTime) + " ms.");
+                outputArea.append(" " + totalRequestsNumber + " requests made in " + (endTime - startTime) + " ms.");
 
                 System.exit(0);
 //                userWants = false;
@@ -113,60 +131,36 @@ public class TestingUnit extends JFrame {
         });
     }
 
-    private void run(String toolNumber, String pauseSize) {
-        Random random = new Random();
+    private void run(String toolNumber, String pauseSize, boolean reuse) {
 
-
-        long p1;
         try {
-            p1 = Long.parseLong(pauseSize);
+            this.pause = Long.parseLong(pauseSize);
         } catch (NumberFormatException e) {
-            p1 = 1000;
+            this.pause = 1000;
         }
-        final long pause = p1;
-//        int TOOLS_NUMBER = 1;
 
-        int t;
         try {
-            t = Integer.parseInt(toolNumber);
+            this.TOOLS_NUMBER = Integer.parseInt(toolNumber);
         } catch (Exception e) {
-            t = 1000;
+            this.TOOLS_NUMBER = 1000;
         }
 
-        final int TOOLS_NUMBER = t;
-
-        // Create an array of fake Robots.
-        tools = new ArrayList<Tool>(TOOLS_NUMBER);
-
-        int RECIPES_NUMBER = 0;
-        if (TOOLS_NUMBER / 10 <= 0) {
-            RECIPES_NUMBER = random.nextInt(10);
+        if (reuse) {
+            readStoredInformation();
         } else {
-            RECIPES_NUMBER = TOOLS_NUMBER / 10;
+            generateFakeData(toolNumber, pauseSize);
         }
 
-        int STEP_NUMBER = 0;
-        if (RECIPES_NUMBER / 10 <= 0) {
-            STEP_NUMBER = random.nextInt(10);
-        } else {
-            STEP_NUMBER = RECIPES_NUMBER / 10;
-        }
 
-        ArrayList<String> recipes = utils.createFakeData(RECIPES_NUMBER);
-        ArrayList<String> steps = utils.createFakeData(STEP_NUMBER);
-
-
-        for (int i = 0; i < TOOLS_NUMBER; i++) {
-            tools.add(utils.createFakeRobot(recipes.get(Math.abs(random.nextInt(recipes.size()))), steps.get(Math.abs(random.nextInt(steps.size())))));
-        }
-
-        System.out.println("Array of fake robots has been created.");
         startTime = System.currentTimeMillis();
 
         Runtime.getRuntime().addShutdownHook(new ShutDownThread(startTime, this));
 
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        System.out.println("Execution started.");
+        outputArea.append("Execution started.\n");
 
         // Fab data threads.
         executor.submit(new Runnable() {
@@ -212,7 +206,89 @@ public class TestingUnit extends JFrame {
 
     }
 
+    private void readStoredInformation() {
+
+        this.tools = read(FILE_NAME);
+        if (this.tools != null)
+            outputArea.append("Information read.\n");
+    }
+
+    private void generateFakeData(String toolNumber, String pauseSize) {
+        Random random = new Random();
+
+        // Create an array of fake Robots.
+        tools = new ArrayList<Tool>(TOOLS_NUMBER);
+
+        int RECIPES_NUMBER = 0;
+        if (TOOLS_NUMBER / 10 <= 0) {
+            RECIPES_NUMBER = random.nextInt(10);
+        } else {
+            RECIPES_NUMBER = TOOLS_NUMBER / 10;
+        }
+
+        int STEP_NUMBER = 0;
+        if (RECIPES_NUMBER / 10 <= 0) {
+            STEP_NUMBER = random.nextInt(10);
+        } else {
+            STEP_NUMBER = RECIPES_NUMBER / 10;
+        }
+
+        ArrayList<String> recipes = utils.createFakeData(RECIPES_NUMBER);
+        ArrayList<String> steps = utils.createFakeData(STEP_NUMBER);
+
+
+        for (int i = 0; i < TOOLS_NUMBER; i++) {
+            tools.add(utils.createFakeRobot(recipes.get(Math.abs(random.nextInt(recipes.size()))), steps.get(Math.abs(random.nextInt(steps.size())))));
+        }
+
+        save();
+
+        System.out.println("Array of fake robots has been created and stored.");
+        outputArea.append("Array of fake robots has been created and stored.\n");
+    }
+
     public int getTotalRequestsNumber() {
         return totalRequestsNumber;
+    }
+
+    public JTextArea getTextArea() {
+        return outputArea;
+    }
+
+    public boolean save() {
+
+        try {
+
+            // Write objects to file.
+            Gson gson = new Gson();
+            String result = gson.toJson(tools);
+            FileUtils.writeStringToFile(new File(FILE_NAME), result, Charset.defaultCharset());
+
+        } catch (IOException e) {
+            System.out.println("Error while storing: " + e);
+            outputArea.append("Error while storing: " + e + "\n");
+            return false;
+        }
+        return true;
+    }
+
+    public ArrayList<Tool> read(String fileName) {
+        System.out.println("Reading from file: " + FILE_NAME);
+        outputArea.append("Reading from file: " + FILE_NAME + "\n");
+        ArrayList tools;
+
+        try {
+
+            String input = FileUtils.readFileToString(new File(fileName), Charset.defaultCharset());
+            Gson gson = new Gson();
+            tools = gson.fromJson(input, new TypeToken<ArrayList<Tool>>() {
+            }.getType());
+
+        } catch (Exception e) {
+            System.out.println("Error while reading from file: " + e);
+            outputArea.append("Error while reading from file: " + e + "\n");
+            return null;
+        }
+        return tools;
     }
 }
