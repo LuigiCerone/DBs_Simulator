@@ -44,11 +44,11 @@ public class RawDataInsertThread implements Runnable {
             } else if (whichField == 1) {
                 // This means we need to insert in raw_data a recipe OID translation.
                 oid = currTool.getRecipeOID();
-                nameTranslation = "recipeName" + currTool.getEquipOID();
+                nameTranslation = "recipeName" + currTool.getRecipeOID();
             } else if (whichField == 2) {
                 // This means we need to insert in raw_data a step OID translation.
                 oid = currTool.getStepOID();
-                nameTranslation = "stepName" + currTool.getEquipOID();
+                nameTranslation = "stepName" + currTool.getStepOID();
             }
 
             Connection connection = databaseRawData.getConnection();
