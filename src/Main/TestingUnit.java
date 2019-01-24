@@ -1,6 +1,7 @@
 package Main;
 
 import Model.DatabaseFabData;
+import Model.DatabaseRawData;
 import Model.Tool;
 import Threads.FabDataInsertThread;
 import Threads.RawDataInsertThread;
@@ -35,7 +36,7 @@ public class TestingUnit extends JFrame {
 
     private Utils utils = new Utils();
 
-    private final static JTextArea outputArea = new JTextArea(15, 30);
+    private final static JTextArea outputArea = new JTextArea(10, 30);
     private String FILE_NAME = "data.txt";
 
 
@@ -62,8 +63,12 @@ public class TestingUnit extends JFrame {
         buttonsPanel.add(STARTButton);
         buttonsPanel.add(STOPButton);
 
-        final JCheckBox checkBox = new JCheckBox("Reuse");
-        buttonsPanel.add(checkBox);
+        final JCheckBox checkBoxReuse = new JCheckBox("Reuse", true);
+        buttonsPanel.add(checkBoxReuse);
+
+        final JCheckBox checkBoxOnlyRaw = new JCheckBox("Only raw_data", false);
+        buttonsPanel.add(checkBoxOnlyRaw);
+
         frameContentPane.add(buttonsPanel);
 
         // ==================================================================0
@@ -94,8 +99,6 @@ public class TestingUnit extends JFrame {
         outputArea.setEditable(false);
         frameContentPane.add(outputArea);
 
-//        frame.setContentPane(new StartTest().panelMain);
-//        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.pack();
         frame.setVisible(true);
@@ -110,7 +113,7 @@ public class TestingUnit extends JFrame {
                 totalRequestsNumber = 0;
                 new Thread() {
                     public void run() {
-                        testingUnit.run(toolNumber.getText(), pauseSize.getText(), checkBox.isSelected());
+                        testingUnit.run(toolNumber.getText(), pauseSize.getText(), checkBoxReuse.isSelected(), checkBoxOnlyRaw.isSelected());
                     }
                 }.start();
             }
@@ -131,7 +134,7 @@ public class TestingUnit extends JFrame {
         });
     }
 
-    private void run(String toolNumber, String pauseSize, boolean reuse) {
+    private void run(String toolNumber, String pauseSize, boolean reuse, boolean onlyRaw) {
 
         try {
             this.pause = Long.parseLong(pauseSize);
@@ -145,12 +148,31 @@ public class TestingUnit extends JFrame {
             this.TOOLS_NUMBER = 1000;
         }
 
+
+        // Check if user wants to reuse the previous data.
         if (reuse) {
             readStoredInformation();
         } else {
             generateFakeData(toolNumber, pauseSize);
         }
 
+        // Check if user wants to only simulate raw_data.
+        if (onlyRaw) {
+            System.out.println("Simulating only raw_data.");
+            outputArea.append("Simulating only raw_data.\n");
+
+            DatabaseRawData databaseRawData = new DatabaseRawData();
+            for (Tool tool : tools) {
+                utils.generateAndStoreTranslation(tool, 0, databaseRawData, false);
+                utils.generateAndStoreTranslation(tool, 1, databaseRawData, false);
+                utils.generateAndStoreTranslation(tool, 2, databaseRawData, false);
+            }
+
+            System.out.println("Done.");
+            outputArea.append("Done.\n");
+
+            System.exit(0);
+        }
 
         startTime = System.currentTimeMillis();
 
@@ -220,14 +242,14 @@ public class TestingUnit extends JFrame {
         tools = new ArrayList<Tool>(TOOLS_NUMBER);
 
         int RECIPES_NUMBER = 0;
-        if (TOOLS_NUMBER / 10 <= 0) {
+        if (TOOLS_NUMBER / 10 <= 3) {
             RECIPES_NUMBER = random.nextInt(10);
         } else {
             RECIPES_NUMBER = TOOLS_NUMBER / 10;
         }
 
         int STEP_NUMBER = 0;
-        if (RECIPES_NUMBER / 10 <= 0) {
+        if (RECIPES_NUMBER / 10 <= 5) {
             STEP_NUMBER = random.nextInt(10);
         } else {
             STEP_NUMBER = RECIPES_NUMBER / 10;
